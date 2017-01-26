@@ -11,10 +11,12 @@
 			<div class="slides">
 				{% for entry in entries %}
 				<section data-transition="convex" data-transition-speed="slow">
-					<figure>
-					<img src="{{ entry.image_src }}" style="width: 80%"/>
-					<figcaption>{{ entry.title }}</figcaption>
-				</figure>
+					{% for image_src in entry.image_srcs %}
+						<section>
+							{% if loop.first %}<h2>{{ entry.title }}</h2>{% endif %}
+							<img src="{{ image_src }}" class="{% if loop.first %}fragment current-visible{% endif %}" style="width: 80%"/>
+						</section>
+					{% endfor %}
 				</section>
 				{% endfor %}
 			</div>
