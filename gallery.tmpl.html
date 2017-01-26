@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>Gallery</title>
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.4.1/css/reveal.css">
+	</head>
+
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				{% for entry in entries %}
+				<section data-transition="convex" data-transition-speed="slow">
+					<figure>
+					<img src="{{ entry.image_src }}" style="width: 80%"/>
+					<figcaption>{{ entry.title }}</figcaption>
+				</figure>
+				</section>
+				{% endfor %}
+			</div>
+		</div>
+
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.4.1/js/reveal.min.js"></script>
+		<script>
+			Reveal.initialize({slideNumber: 'c/t'});
+		</script>
+
+	</body>
+</html>
