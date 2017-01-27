@@ -14,9 +14,13 @@ import mistune
 from github import Github  # , GithubException
 from jinja2 import Environment
 
+# Globals
+#
+
 BUILD_DIR = './build'
 TEMPLATE_PATH = 'gallery.tmpl.html'
 ORIGIN_REPO_NAME = 'olinlibrary/htl-lab1'
+FORCE_DOWNLOAD = False
 
 GH_TOKEN = os.environ['GITHUB_API_TOKEN']
 gh = Github(GH_TOKEN)
@@ -25,8 +29,8 @@ gh = Github(GH_TOKEN)
 #
 
 
-def local_image_path_for(owner, image_path):
-    return os.path.join('images', owner, os.path.split(image_path)[1])
+def local_image_path_for(images):
+    return os.path.join('images', image.repository.owner.login, os.path.split(image.path)[1])
 
 
 class ImageCaptureRenderer(mistune.Renderer):
@@ -57,11 +61,11 @@ def get_repo_content_text(repo, path):
 origin_repo = gh.get_repo(ORIGIN_REPO_NAME)
 repos = list(origin_repo.get_forks())
 
-# Did the survey include any repos that weren't forks?
+# `repos.txt` is an optional list of repos. Add any that weren't already found (that aren't forks).
 SURVEY_REPO_LIST_PATH = './repos.txt'
 if os.path.exists(SURVEY_REPO_LIST_PATH):
-    more_gitub_logins = re.findall(r'https?:\/\/github.com\/([^\/]+)', open(SURVEY_REPO_LIST_PATH).read())
-    assert not set(more_gitub_logins) - set(repo.owner.login for repo in repos)
+    more_gitub_repos = re.findall(r'https?:\/\/github.com\/([^\/\s]+\/[^\/\s]+)', open(SURVEY_REPO_LIST_PATH).read())
+    repos += [gh.get_repo(repo_name) for repo_name in set(more_gitub_repos) - set(repo.full_name for repo in repos)]
 
 
 # Downlaod and parse the READMEs
@@ -80,11 +84,15 @@ owner_image_dict = {repo.owner.login: [repo.get_contents(re.sub(r'\.\/', '', u))
 # download images
 #
 
-for owner, images in owner_image_dict.items():
-    os.makedirs(os.path.join(BUILD_DIR, 'images', owner), exist_ok=True)
-    for image in images:
-        with open(os.path.join(BUILD_DIR, local_image_path_for(owner, image.path)), 'wb') as f:
-            f.write(base64.b64decode(repos[0].get_git_blob(image.sha).content))
+images = [image for images in owner_image_dict.values() for image in images]
+
+for image in images:
+    local_path = os.path.join(BUILD_DIR, local_image_path_for(image))
+    os.makedirs(os.path.dirname(local_path), exist_ok=True)
+    if FORCE_DOWNLOAD or not os.path.exists(local_path):
+        print('downloading', local_path)
+        with open(local_path, 'wb') as f:
+            f.write(base64.b64decode(image.repository.get_git_blob(image.sha).content))
 
 
 # Create the HTML
@@ -95,7 +103,7 @@ tpl = env.from_string(open(TEMPLATE_PATH).read())
 
 output_path = os.path.join(BUILD_DIR, 'gallery.html')
 with open(output_path, 'w') as f:
-    entries = [{'title': owner, 'image_srcs': [local_image_path_for(owner, image.path) for image in images]}
+    entries = [{'title': owner, 'image_srcs': [local_image_path_for(image) for image in images]}
                for owner, images in owner_image_dict.items()]
-    f.write(tpl.render(entries=entries))
-print('wrote', len(owner_image_dict), 'slides to', output_path)
+    f.write(tpl.render(entries=entries, pycode=open('gallery.py').read()))
+print('wrote {} slides and {} images to {}'.format(len(owner_image_dict), len(images), output_path))
