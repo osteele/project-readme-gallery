@@ -2,7 +2,7 @@
 <html lang="en">
 	<head>
 		<meta charset="utf-8">
-		<title>Gallery</title>
+		<title>{{ title }}</title>
 		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.4.1/css/reveal.css">
 	</head>
 
@@ -10,7 +10,7 @@
 		<div class="reveal">
 			<div class="slides">
 				<section>
-					<h1>Lab 1 Exhibition</h1>
+					<h1>{{ title }}</h1>
 				</section>
 				{% for entry in entries %}
 				<section data-transition="convex" data-transition-speed="slow">

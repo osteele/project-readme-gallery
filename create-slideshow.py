@@ -1,29 +1,48 @@
-"""
+"""Usage: create-slideshow.py GITHUB_REPO
+                           [--title=title] [--output-dir=<path>]
+                           [--re-download-images]
+
 Create a Reveal.js slide show from the README images of the forks of a repository.
 
-Author: Oliver Steele
-Date: 2017-01-26
-License: MIT
+For each fork of GITHUB_REPO, if the fork contains a file README.md and that README contains an image,
+add a slide with the image.
+
+A README that contains multiple images will create a nested slide.
+
+Arguments:
+  GITHUB_REPO  a GitHub repository name of the form owner/repo.
 """
 
 import base64
 import os
 import re
+import sys
 
 import mistune
-from github import Github  # , GithubException
+from docopt import docopt
+from github import Github
 from jinja2 import Environment
 
 # Globals
 #
 
-BUILD_DIR = './build'
-TEMPLATE_PATH = 'gallery.tmpl.html'
-ORIGIN_REPO_NAME = 'olinlibrary/htl-lab1'
-FORCE_DOWNLOAD = False
+arguments = docopt(__doc__)
+ORIGIN_REPO_NAME = arguments['GITHUB_REPO']
+BUILD_DIR = arguments['--output-dir'] or './build'
+TITLE = arguments['--title'] or "Gallery"
+FORCE_DOWNLOAD = arguments['--re-download-images']
 
-GH_TOKEN = os.environ['GITHUB_API_TOKEN']
-gh = Github(GH_TOKEN)
+
+# Globals
+#
+
+TEMPLATE_PATH = 'gallery.tmpl.html'
+
+GITHUB_API_TOKEN = os.environ.get('GITHUB_API_TOKEN', None)
+if not GITHUB_API_TOKEN:
+    print("warning: GITHUB_API_TOKEN is not defined. API calls are rate-limited.", file=sys.stderr)
+gh = Github(GITHUB_API_TOKEN)
+
 
 # Helper functions
 #
@@ -62,11 +81,10 @@ origin_repo = gh.get_repo(ORIGIN_REPO_NAME)
 repos = list(origin_repo.get_forks())
 
 # `repos.txt` is an optional list of repos. Add any that weren't already found (that aren't forks).
-SURVEY_REPO_LIST_PATH = './repos.txt'
-if os.path.exists(SURVEY_REPO_LIST_PATH):
-    more_gitub_repos = re.findall(r'https?:\/\/github.com\/([^\/\s]+\/[^\/\s]+)', open(SURVEY_REPO_LIST_PATH).read())
-    repos += [gh.get_repo(repo_name) for repo_name in set(more_gitub_repos) - set(repo.full_name for repo in repos)]
-
+# SURVEY_REPO_LIST_PATH = './repos.txt'
+# if os.path.exists(SURVEY_REPO_LIST_PATH):
+#     more_gitub_repos = re.findall(r'https?:\/\/github.com\/([^\/\s]+\/[^\/\s]+)', open(SURVEY_REPO_LIST_PATH).read())
+#     repos += [gh.get_repo(repo_name) for repo_name in set(more_gitub_repos) - set(repo.full_name for repo in repos)]
 
 # Downlaod and parse the READMEs
 #
@@ -79,7 +97,7 @@ repo_readme_image_urls = [get_markdown_image_urls(readme) for readme in repo_rea
 owner_image_dict = {repo.owner.login: [repo.get_contents(re.sub(r'\.\/', '', u)) for u in urls]
                     for repo, urls in zip(repos, repo_readme_image_urls)
                     if urls}
-
+owner_image_dict
 
 # download images
 #
@@ -105,5 +123,5 @@ output_path = os.path.join(BUILD_DIR, 'gallery.html')
 with open(output_path, 'w') as f:
     entries = [{'title': owner, 'image_srcs': [local_image_path_for(image) for image in images]}
                for owner, images in owner_image_dict.items()]
-    f.write(tpl.render(entries=entries, pycode=open('gallery.py').read()))
+    f.write(tpl.render(title=TITLE, entries=entries))
 print('wrote {} slides and {} images to {}'.format(len(owner_image_dict), len(images), output_path))

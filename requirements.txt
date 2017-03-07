@@ -1,2 +1,4 @@
-Jinja2==2.8
-mistune==0.7.2
+Jinja2>=2.8
+mistune>=0.7.2
+PyGithub>=1.29
+docopt>=0.6.2
