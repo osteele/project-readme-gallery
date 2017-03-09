@@ -11,6 +11,11 @@ If the README contains an image, a slide for that repo is added to the slide sho
 
     $ pip3 install -r requirements.txt
 
+Optionally [create a personal GitHub API token](https://github.com/blog/1509-personal-api-tokens).
+Set the `GITHUB_API_TOKEN` environment variable to this value.
+This will increase the [GitHub API rate limit](https://developer.github.com/v3/#rate-limiting).
+
+
 ## Usage
 
     $ python3 create-slideshow.py GITHUB_REPO
